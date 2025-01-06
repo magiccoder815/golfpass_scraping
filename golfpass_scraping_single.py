@@ -2,10 +2,21 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import os
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import TimeoutException
+
 
 # File paths
 original_file_path = 'Copy of golfcoursesandgolfresorts_1.0.2 - golfcoursesandgolfresorts_1.0.2 (1).csv'
-updated_file_path = 'updated_golfcoursesandgolfresorts.csv'  # New file for updated data
+updated_file_path = 'updated_golfcoursesandgolfresorts_30.csv'  # New file for updated data
 
 # Check if file is accessible
 def is_file_accessible(filepath, mode='r'):
@@ -51,6 +62,32 @@ def scrape_first_golfpass_link(biz_name):
             return f"https://www.golfpass.com{link_element['href']}"
     return None
 
+# Selenium setup for getting the redirected URL
+def get_redirected_url(raw_url):
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')  # Run in headless mode
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+
+    try:
+        driver.get(raw_url)
+        time.sleep(10)
+        print("raw: ", raw_url)
+        # Get the final redirected URL
+        final_url = driver.current_url
+        print("redirected: ", final_url)
+
+    except TimeoutException:
+        print(f"Timeout occurred while getting redirected URL for: {raw_url}")
+        final_url = None
+    finally:
+        driver.quit()  # Ensure the browser is closed
+
+    return final_url
+
 # Function to scrape course details
 def scrape_course_details(course_url):
     response = requests.get(course_url)
@@ -63,7 +100,11 @@ def scrape_course_details(course_url):
     description = description_div.get_text(strip=True) if description_div else None
 
     website_link = soup.find('a', class_='Link', string='Course Website')
-    course_website = website_link['href'] if website_link else None
+    course_website = None
+    if website_link:
+        # Extract the original href
+        raw_website_url = website_link['href']
+        course_website = get_redirected_url(raw_website_url)
 
     return description, course_website
 

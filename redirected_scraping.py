@@ -4,11 +4,15 @@ import time
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+
 from webdriver_manager.chrome import ChromeDriverManager
 
 # Load the uploaded file
-uploaded_file_path = 'updated_golfcoursesandgolfresorts - Copy.csv'
+uploaded_file_path = 'updated_golfcoursesandgolfresorts_1_2.csv'
 data = pd.read_csv(uploaded_file_path)
 
 # Function to set up Selenium WebDriver
@@ -18,19 +22,29 @@ def setup_driver():
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-software-rasterizer')
+    chrome_options.add_argument('--use-gl=swiftshader')
+    chrome_options.add_argument('--enable-unsafe-swiftshader')
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     return driver
 
 # Function to fetch redirected URL using Selenium
 def get_redirected_url(raw_url):
+
+    if raw_url.startswith("http://"):
+        return raw_url
+    
     driver = setup_driver()
     final_url = None
 
     try:
+        print("raw: ", raw_url)
         driver.get(raw_url)
-        time.sleep(10)  # Wait for redirection
+        time.sleep(10)
         final_url = driver.current_url
+        print("redirected: ", final_url)
+
     except TimeoutException:
         print(f"Timeout occurred for URL: {raw_url}")
     finally:
@@ -38,30 +52,33 @@ def get_redirected_url(raw_url):
 
     return final_url
 
-# Chunk size for processing
-CHUNK_SIZE = 5
-output_directory = 'data/'
+redirected = get_redirected_url("https://www.golfpass.com/travel-advisor/xgo/12304")
+print(redirected)
 
-# Ensure output directory exists
-if not os.path.exists(output_directory):
-    os.makedirs(output_directory)
+# # Chunk size for processing
+# CHUNK_SIZE = 300
+# output_directory = 'data_5463-10000/'
 
-# Process the data in chunks
-for i in range(0, len(data), CHUNK_SIZE):
-    chunk = data.iloc[i:i+CHUNK_SIZE].copy()
+# # Ensure output directory exists
+# if not os.path.exists(output_directory):
+#     os.makedirs(output_directory)
 
-    print(f"Processing rows {i} to {i+len(chunk)-1}")
+# # Process the data in chunks
+# for i in range(0, len(data), CHUNK_SIZE):
+#     chunk = data.iloc[i:i+CHUNK_SIZE].copy()
 
-    # Update website column with redirected URLs
-    for index, row in chunk.iterrows():
-        if pd.notna(row['website']):
-            redirected_url = get_redirected_url(row['website'])
-            chunk.at[index, 'website'] = redirected_url
+#     print(f"Processing rows {i} to {i+len(chunk)-1}")
 
-    # Save the processed chunk to a new file
-    chunk_file_path = os.path.join(output_directory, f'updated_chunk_{i//CHUNK_SIZE + 1}.csv')
-    chunk.to_csv(chunk_file_path, index=False)
+#     # Update website column with redirected URLs
+#     for index, row in chunk.iterrows():
+#         if pd.notna(row['website']):
+#             redirected_url = get_redirected_url(row['website'])
+#             chunk.at[index, 'website'] = redirected_url
 
-    print(f"Chunk {i//CHUNK_SIZE + 1} saved to {chunk_file_path}")
+#     # Save the processed chunk to a new file
+#     chunk_file_path = os.path.join(output_directory, f'updated_chunk_{i//CHUNK_SIZE + 1}.csv')
+#     chunk.to_csv(chunk_file_path, index=False)
 
-print("Processing complete.")
+#     print(f"Chunk {i//CHUNK_SIZE + 1} saved to {chunk_file_path}")
+
+# print("Processing complete.")

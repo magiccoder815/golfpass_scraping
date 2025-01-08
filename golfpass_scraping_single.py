@@ -15,8 +15,8 @@ from selenium.common.exceptions import TimeoutException
 
 
 # File paths
-original_file_path = 'Copy of golfcoursesandgolfresorts_1.0.2 - golfcoursesandgolfresorts_1.0.2 (1).csv'
-updated_file_path = 'updated_golfcoursesandgolfresorts_30.csv'  # New file for updated data
+original_file_path = 'Copy of golfcoursesandgolfresorts_1.0.2 - golfcoursesandgolfresorts_1.0.2.csv'
+updated_file_path = 'updated_golfcoursesandgolfresorts_final.csv'  # New file for updated data
 
 # Check if file is accessible
 def is_file_accessible(filepath, mode='r'):
